@@ -1,12 +1,14 @@
-
-
-function sigmoid(n) {
-    return 1 / (1 + math.exp(-n))
-}
-
 function dsigmoid(n) {
-    return sigmoid(n) * (1 - sigmoid(n));
+    return n * (1 - n);
 }
+
+function randomize(n) {
+    return Math.random()*2-1;
+}
+
+var linAlg = new linearAlgebra(),
+    Vector = linAlg.Vector,
+    Matrix = linAlg.Matrix;
 
 class NeuralNetwork {
     constructor(layers) {
@@ -18,91 +20,54 @@ class NeuralNetwork {
             this.weights = new Array(this.layers.length);
             this.biases = new Array(this.layers.length);
             this.calculatedLayerValues = new Array(this.layers.length);
-            this.maxEpochs = 100;
-            this.learningRate = 0.1;
+            this.learningRate = 0.5;
 
             //create random weights and biases for connections between each layer (i, i + 1)
             for (var i = 1; i < this.layers.length; i++) {
-                var size = [this.layers[i], this.layers[i - 1]];
-                this.weights[i] = Matrix.randomize(size, 0, 1);
-                this.biases[i] = Matrix.randomize([this.layers[i]], 0, 1);
-                this.calculatedLayerValues[i] = math.matrix();
+                this.weights[i] = Matrix.zero(this.layers[i], this.layers[i - 1]);
+                this.weights[i] = this.weights[i].eleMap(randomize);
+                this.biases[i] = Matrix.zero(this.layers[i], 1);
+                this.biases[i] = this.biases[i].eleMap(randomize);
             }
         }
     }
 
     feedForward(inputs) {
-        console.log("Input:" + inputs)
-        this.calculatedLayerValues[0] = inputs;
+        this.calculatedLayerValues[0] = new Matrix(inputs).trans();
         for (var i = 1; i < this.layers.length; i++) {
             var input_array = this.calculatedLayerValues[i - 1];
-            // console.log("weights: " + i);
-            // console.table(this.weights[i]);
-            // console.log("input_array: " + i);
-            // console.table(input_array);
-            var layerValues = math.multiply(this.weights[i], input_array);
-            layerValues = math.multiply(this.weights[i], input_array);
-            layerValues = math.add(layerValues, this.biases[i]);
-            layerValues = Matrix.map(layerValues, sigmoid);
+            var layerValues = this.weights[i].dot(input_array);
+            layerValues = layerValues.plus(this.biases[i]);
+            layerValues = layerValues.sigmoid();
             this.calculatedLayerValues[i] = layerValues;
 
         }
-        return this.calculatedLayerValues[this.layers.length - 1];
+        return this.calculatedLayerValues[this.calculatedLayerValues.length - 1];
     }
 
     backPropagate(outputs, targets) {
         //delta of each layers values should be learningRate*error*dsigmoid*transpose(calculatedLayerValue)
-        // console.log(outputs);
-        // console.log(targets);
-        // console.table(math.matrix(outputs));
-        // console.table(math.matrix(targets));
-        var errors = math.subtract(math.matrix(targets), outputs);
+        var input_targets = new Matrix(targets).trans();
+        var errors = input_targets.minus(outputs);
 
         for (var i = this.layers.length - 1; i > 0; i--) {
-            // console.table(errors);  
-            console.log(i);         
-            var gradient = Matrix.map(this.calculatedLayerValues[i], dsigmoid);
-            gradient = math.multiply(gradient, errors);
-            gradient = math.multiply(gradient, this.learningRate);
-            this.biases[i] = math.add(this.biases[i], gradient);
-            var weightDelta = math.multiply(gradient, Matrix.rowVectorTranspose(this.calculatedLayerValues[i-1]))
+            var gradient = this.calculatedLayerValues[i].eleMap(dsigmoid);
+            gradient = gradient.mul(errors);
+            gradient = gradient.mulEach(this.learningRate);
+            this.biases[i] = this.biases[i].plus(gradient);
 
-            console.log(this.calculatedLayerValues[i-1]);
-            console.log(Matrix.rowVectorTranspose(this.calculatedLayerValues[i-1]));            
+            var prevLayerValue_T = this.calculatedLayerValues[i - 1].trans();
+            var weightDelta = gradient.dot(prevLayerValue_T);
+            this.weights[i] = this.weights[i].plus(weightDelta);
 
-            console.log(weightDelta);
-            console.log(math.matrix(this.weights[i]));
-            this.weights[i] = math.add(this.weights[i], math.matrix(weightDelta));
+            var weights_T = this.weights[i].trans();
 
-            errors = math.multiply(math.transpose(this.weights[i]), errors);
+            errors = weights_T.dot(errors);
         }
     }
 
-    train(inputs, targets) {
-
-        //example inputs and targets is the xor problem
-        var input_array = inputs ||
-            [
-                [1, 0],
-                [0, 1],
-                [0, 0],
-                [1, 1]
-            ];
-        var target_array = targets ||
-            [
-                [1],
-                [1],
-                [0],
-                [0]
-            ];
-
-        for (var i = 0; i < this.maxEpochs; i++) {
-            var randomIndex = Math.floor(Math.random() * Math.floor(input_array.length));
-            console.log("FEEDFORWARD");
-            var result = this.feedForward(input_array[randomIndex]);
-            //console.log(result);
-            console.log("BACKPROPAGATE");
-            this.backPropagate(result, target_array[randomIndex]);
-        }
+    train(inputs, targets) {     
+        var result = this.feedForward(inputs);
+        this.backPropagate(result, targets);
     }
 }
