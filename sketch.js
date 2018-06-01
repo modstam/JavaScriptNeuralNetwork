@@ -1,7 +1,7 @@
 var nn;
-var maxEpochs = 100000;
+var maxEpochs = 300;
 
-
+//XOR
 var training_data = [
     {
         inputs: [0, 0],
@@ -21,11 +21,19 @@ var training_data = [
     },
 ];
 
+// var training_data = [
+//     {
+//         inputs: [1, 1],
+//         targets: [0]
+//     },
+// ];
+
 function setup() {
-    nn = new NeuralNetwork([2, 2, 1]);
+    nn = new NeuralNetwork([2, 4, 1]);
 
     for (var i = 0; i < maxEpochs; i++) {
         var data = random(training_data);
+        //console.log(data.inputs);
         nn.train(data.inputs, data.targets);
     }
 
