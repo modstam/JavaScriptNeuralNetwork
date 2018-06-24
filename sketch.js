@@ -1,5 +1,5 @@
 var nn;
-var maxEpochs = 10000;
+var maxEpochs = 100;
 var learningRate = 0.5;
 
 
@@ -18,10 +18,9 @@ function setup() {
         //console.log(data.inputs);
         nn.train(data.inputs, data.targets, learningRate);
         evaluateCurrentAccuracy(nn, training_data, i);
-
     }
 
-    console.log(nn);
+    //console.log(nn);
     for (var i = 0; i < training_data.length; i++) {
         nn = bestNetwork;
         var result = nn.feedForward(training_data[i].inputs);
