@@ -99,8 +99,8 @@ class NeuralNetwork {
             var w_update = this.w_deltas[i].mulEach(learningRate);
             var b_update = this.b_deltas[i].mulEach(learningRate);
 
-            this.weights[i] = this.weights[i].plus(w_update);
-            this.biases[i] = this.biases[i].plus(b_update);
+            this.weights[i] = this.weights[i].minus(w_update);
+            this.biases[i] = this.biases[i].minus(b_update);
 
             // console.table(this.weights[i].data);
         }

@@ -1,6 +1,6 @@
 var nn;
-var maxEpochs = 100;
-var learningRate = 0.5;
+var maxEpochs = 100000;
+var learningRate = 0.2;
 
 
 var bestWeightsNumEpochs;
@@ -9,7 +9,7 @@ var bestWeightsAccuracySum = Number.MAX_SAFE_INTEGER;
 
 
 function setup() {
-    nn = new NeuralNetwork([2, 4, 1]);
+    nn = new NeuralNetwork([2, 2, 1]);
 
     var training_data = training_data_xor;
 
@@ -35,15 +35,17 @@ function evaluateCurrentAccuracy(nn, training_data, currentEpoch) {
         var result = nn.feedForward(training_data[i].inputs);
         var error = training_data[i].targets[0] - result.data[0];
         //console.log("error: " + error + " ("  + training_data[i].targets[0] + " - " + result.data[0] + ")")
-        sum += Math.abs(training_data[i].targets[0] - result.data[0]);
+        var error = training_data[i].targets[0] - result.data[0];
+        sum += error*error;
         //console.log(sum);
     }
+    sum = sum/2;
     if (bestNetwork != undefined) {
         if (bestWeightsAccuracySum > sum) {
             bestNetwork = nn.clone();
             bestWeightsAccuracySum = sum;
             bestWeightsNumEpochs = currentEpoch;
-            console.log("AccuracySum: " + sum + ", Epoch: " + currentEpoch)
+            console.log("Error: " + sum + ", Epoch: " + currentEpoch)
         }
     }
     else {
