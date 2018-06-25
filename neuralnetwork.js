@@ -78,21 +78,16 @@ class NeuralNetwork {
         var input_targets =  Matrix.reshapeFrom(targets, targets.length, 1);
 
         var sigmoid_prime = this.unActivatedValues[numL-1].eleMap(dsigmoid_true);
-        //console.table(sigmoid_prime);
-
         var l_error = outputs.minus(input_targets).mul(sigmoid_prime);
         this.b_deltas[numL - 1] = l_error;
         this.w_deltas[numL - 1] = l_error.dot(this.activations[numL - 2].trans());
-        //this.w_deltas[numL - 1] = this.activations[numL - 2].dot(l_error);
-
+        
         for (var i = numL - 2; i > 0; i--) {
             sigmoid_prime = this.unActivatedValues[i].eleMap(dsigmoid_true);
             var l_error = this.weights[i + 1].trans().dot(l_error).mul(sigmoid_prime);
             this.b_deltas[i] = l_error;
-            this.w_deltas[i] = l_error.dot(this.activations[i - 1].trans());
-            //this.w_deltas[i] = this.activations[i - 1].dot(l_error);
+            this.w_deltas[i] = l_error.dot(this.activations[i - 1].trans());          
         }
-        // console.log(this.w_deltas);
 
         //update all weights, biases with deltas
         for (var i = 1; i < numL; i++) {
@@ -101,8 +96,6 @@ class NeuralNetwork {
 
             this.weights[i] = this.weights[i].minus(w_update);
             this.biases[i] = this.biases[i].minus(b_update);
-
-            // console.table(this.weights[i].data);
         }
     }
 
