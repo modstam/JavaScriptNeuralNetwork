@@ -2,36 +2,12 @@ function sigmoid(n) {
     return 1 / (1 + (Math.exp(-n)))
 }
 
-function dsigmoid(n) {
-    //sigmoid prime is really sigmoid(n) * (1 - sigmoid(n))
-    //but in our case we store all the activations already so 
-    //we just send in those values instead resulting in n * (1 - n)
-    return n * (1 - n);
-}
-
 function dsigmoid_true(n) {
     return sigmoid(n) * (1 - sigmoid(n));
 }
 
-
-
-function softplus(n) {
-    return Math.log(1 + Math.exp(n));
-}
-
-function dsoftplus(n) {
-    return sigmoid(n);
-}
-
 function randomize(n) {
     return (Math.random() * 2) - 1;
-}
-
-function randn_bm() {
-    var u = 0, v = 0;
-    while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
-    while (v === 0) v = Math.random();
-    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 }
 
 var linAlg = new linearAlgebra(),
@@ -39,7 +15,7 @@ var linAlg = new linearAlgebra(),
     Matrix = linAlg.Matrix;
 
 class NeuralNetwork {
-    constructor(layers) {
+    constructor(layers, mutation_rate) {
         if (!(layers instanceof Array)) {
             console.log("input should be an array with length representing number " +
                 "of layers and each value the number of neurons in the layer");
@@ -51,6 +27,7 @@ class NeuralNetwork {
             this.b_deltas = new Array(this.layers.length);
             this.activations = new Array(this.layers.length);
             this.unActivatedValues = new Array(this.layers.length);
+            this.mutation_rate = mutation_rate;
 
             //create random weights and biases for connections between each layer (i, i + 1)
             for (var i = 1; i < this.layers.length; i++) {
@@ -75,18 +52,18 @@ class NeuralNetwork {
 
     backPropagate(outputs, targets, learningRate) {
         var numL = this.layers.length;
-        var input_targets =  Matrix.reshapeFrom(targets, targets.length, 1);
+        var input_targets = Matrix.reshapeFrom(targets, targets.length, 1);
 
-        var sigmoid_prime = this.unActivatedValues[numL-1].eleMap(dsigmoid_true);
+        var sigmoid_prime = this.unActivatedValues[numL - 1].eleMap(dsigmoid_true);
         var l_error = outputs.minus(input_targets).mul(sigmoid_prime);
         this.b_deltas[numL - 1] = l_error;
         this.w_deltas[numL - 1] = l_error.dot(this.activations[numL - 2].trans());
-        
+
         for (var i = numL - 2; i > 0; i--) {
             sigmoid_prime = this.unActivatedValues[i].eleMap(dsigmoid_true);
             var l_error = this.weights[i + 1].trans().dot(l_error).mul(sigmoid_prime);
             this.b_deltas[i] = l_error;
-            this.w_deltas[i] = l_error.dot(this.activations[i - 1].trans());          
+            this.w_deltas[i] = l_error.dot(this.activations[i - 1].trans());
         }
 
         //update all weights, biases with deltas
@@ -111,5 +88,64 @@ class NeuralNetwork {
             nn.biases[i] = this.biases[i].clone();
         }
         return nn;
+    }
+
+    mutate(mutation_rate) {
+        for (var i = 1; i < this.weights.length; i++) {
+            var weight = this.weights[i];
+            var bias = this.biases[i];
+
+            for (var row = 0; row < weight.rows; row++) {
+                for (var col = 0; col < weight.cols; col++) {
+                    var prob = random(1);
+                    if (prob < mutation_rate) {
+                        var newNumber = randomGaussian() * 0.5;
+                        weight.data[row][col] += newNumber;
+                    }
+                }
+            }
+
+            for (var row = 0; row < bias.rows; row++) {
+                for (var col = 0; col < bias.cols; col++) {
+                    var prob = random(1);
+                    if (prob < mutation_rate) {
+                        var newNumber = randomGaussian() * 0.5;
+                        bias.data[row][col] += newNumber;
+                    }
+                }
+            }
+        }
+    }
+
+    crossOver(otherNetwork) {
+        var clone = this.clone();
+
+        for (var i = 1; i < clone.weights.length; i++) {
+            var weight = clone.weights[i];
+            var bias = clone.biases[i];
+
+            var counter = 0;
+            for (var row = 0; row < weight.rows; row++) {
+                for (var col = 0; col < weight.cols; col++) {
+                    if (counter % 2 == 0) {
+                        //console.log("2 ;" + brain2.weights[i].data[row][col]);
+                        clone.weights[i].data[row][col] = otherNetwork.weights[i].data[row][col];
+                        counter++;
+                    }
+                }
+            }
+
+            for (var row = 0; row < bias.rows; row++) {
+                for (var col = 0; col < bias.cols; col++) {
+                    if (counter % 2 == 0) {
+                        //console.log("2 ;" + brain2.weights[i].data[row][col]);
+                        clone.biases[i].weight.data[row][col] = otherNetwork.bias[i].data[row][col];
+                        counter++;
+                    }
+                }
+            }
+
+        }
+        return clone;
     }
 }
